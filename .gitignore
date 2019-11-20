@@ -1,0 +1,8 @@
+__pycache__
+venv/
+*.pkl
+*.swp
+*.txt
+*.csv
+*.pt
+*.sh
