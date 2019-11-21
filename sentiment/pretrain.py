@@ -114,7 +114,7 @@ trg_train, trg_valid, trg_test = get_datasets(
 
 train_ds_list = [src_train, trg_train]
 valid_ds_list = [src_valid, trg_valid]
-test_ds_list = [src_valid, trg_valid]
+test_ds_list = [src_test, trg_test]
 
 if args.train:
     for epoch in range(1, args.epochs + 1):
