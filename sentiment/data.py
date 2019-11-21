@@ -1,6 +1,6 @@
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from transformers import (
     BertTokenizer,
 )
@@ -60,3 +60,7 @@ def get_datasets(ds, search=False):
 
 def create_loader(args, ds, shuffle=True):
     return DataLoader(ds, args.bs, shuffle)
+
+
+def create_loader_multiple(args, ds_list, shuffle=True):
+    return DataLoader(ConcatDataset(ds_list), args.bs, shuffle)

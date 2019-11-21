@@ -62,6 +62,12 @@ parser.add_argument(
     help='weight decay',
 )
 parser.add_argument(
+    '--eps',
+    type=float,
+    default=1e-8,
+    help='adam epsilon',
+)
+parser.add_argument(
     '--accumulate_grad',
     type=float,
     default=1,
