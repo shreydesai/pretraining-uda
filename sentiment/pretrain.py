@@ -16,7 +16,12 @@ def _optimizer_step(args, i):
 
 
 def _create_pretraining_inputs_bert(inputs):
-    """Adapted from HuggingFace Transformers (http://bit.ly/2NUxZtM)"""
+    """
+    masked language modeling (MLM) objective where 15% of the tokens are
+    predicted; of these, 80% are set to [MASK], 10% are set to a random
+    wordpiece, and 10% are left the same. adapted from HuggingFace
+    Transformers (http://bit.ly/2NUxZtM)
+    """
 
     def _create_bernoulli_mask(inputs, p):
         return torch.bernoulli(torch.full(inputs.size(), p)).bool()
@@ -55,9 +60,20 @@ def _create_pretraining_inputs_bert(inputs):
     return (inputs, labels)
 
 
+def _create_pretraining_inputs_gpt2(inputs):
+    """
+    standard language modeling objective where the next word is predicted
+    from the context of all previous words
+    """
+
+    return (inputs[:-1], inputs[1:])
+
+
 def create_pretraining_inputs(inputs):
     if args.model == 'bert-base-uncased':
         return _create_pretraining_inputs_bert(inputs)
+    elif args.model == 'gpt2':
+        return _create_pretraining_inputs_gpt2(inputs)
     raise NotImplementedError
 
 
@@ -95,7 +111,14 @@ def test(test_ds_list):
     return test_loss / len(test_loader)
 
 
-model = cuda(args, BertForMaskedLM.from_pretrained('bert-base-uncased'))
+if args.model == 'bert-base-uncased':
+    model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+elif args.model == 'gpt2':
+    model = GPT2LMHead.from_pretrained('gpt2')
+else:
+    raise NotImplementedError
+
+model = cuda(args, model)
 optimizer = AdamW(
     optimizer_params(model),
     lr=args.lr,

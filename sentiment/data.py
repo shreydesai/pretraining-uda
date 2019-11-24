@@ -3,6 +3,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from transformers import (
     BertTokenizer,
+    RobertaTokenizer,
+    GPT2Tokenizer,
 )
 
 from main import args
@@ -11,6 +13,10 @@ from utils import cuda, rpad
 
 if args.model == 'bert-base-uncased':
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+elif args.model == 'roberta-base':
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+elif args.model == 'gpt2':
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 else:
     raise NotImplementedError
 

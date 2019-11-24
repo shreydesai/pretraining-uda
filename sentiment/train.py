@@ -7,7 +7,7 @@ from sklearn.metrics import classification_report
 
 from main import args
 from data import get_datasets, create_loader
-from models import BertMLP
+from models import BertMLP, RobertaMLP
 from utils import cuda
 
 
@@ -58,7 +58,26 @@ def test(test_ds):
     return classification_report(y_true, y_pred, digits=6)
 
 
-model = cuda(args, BertMLP())
+if args.model == 'bert-base-uncased':
+    model = BertMLP()
+elif args.model == 'roberta-base':
+    model = RobertaMLP()
+else:
+    raise NotImplementedError
+
+
+model = cuda(args, model)
+if args.pretrained_ckpt:
+    pretrained_state_dict = torch.load(
+        args.pretrained_ckpt, map_location='cpu'
+    )
+    for n, p in model.named_parameters():
+        if n in pretrained_state_dict:
+            w = pretrained_state_dict[n]
+            p.data.copy_(w.data)
+    model = cuda(args, model)
+    print('loaded pretrained ckpt')
+
 optimizer = AdamW(
     model.parameters(),
     lr=args.lr,
@@ -99,5 +118,5 @@ if args.train:
         )
 
 model.load_state_dict(torch.load(args.ckpt))
-clf_report = test(trg_test)
+clf_report = test(test_ds)
 print(clf_report)

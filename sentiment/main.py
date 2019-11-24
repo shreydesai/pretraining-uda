@@ -14,6 +14,12 @@ parser.add_argument(
     help='model checkpoint path',
 )
 parser.add_argument(
+    '--pretrained_ckpt',
+    type=str,
+    default='',
+    help='pretrained model checkpoint path',
+)
+parser.add_argument(
     '--src',
     type=str,
     default='apps',
@@ -78,6 +84,12 @@ parser.add_argument(
     type=int,
     default=0,
     help='src (0), trg (1), uda (2)',
+)
+parser.add_argument(
+    '--freeze',
+    action='store_true',
+    default=False,
+    help='freeze bert',
 )
 parser.add_argument(
     '--train',
