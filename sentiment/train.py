@@ -22,7 +22,6 @@ def train(train_ds):
         if args.accumulate_grad > 1:
             loss = loss / args.accumulate_grad
         train_loss += loss.item()
-        print(loss)
         loss.backward()
         if optimizer_step(args, i):
             optimizer.step()
