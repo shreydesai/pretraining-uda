@@ -8,11 +8,7 @@ from transformers import AdamW, BertForMaskedLM, RobertaForMaskedLM
 
 from main import args
 from data import TextDataset, tokenizer, create_loader_multiple
-from utils import cuda, optimizer_params
-
-
-def _optimizer_step(args, i):
-    return i % args.accumulate_grad == 0
+from utils import cuda, optimizer_step, optimizer_params
 
 
 def _create_pretraining_inputs_bert(inputs):
@@ -72,15 +68,15 @@ def train(train_ds_list):
     global_steps = 0.
     train_loader = create_loader_multiple(args, train_ds_list)
     optimizer.zero_grad()
-    for i, (x, _) in enumerate(train_loader, 1):
+    for i, (x, x_len, _) in enumerate(train_loader, 1):
         x_in, x_out = create_pretraining_inputs(x)
-        logits = model(x_in)[0].transpose(1, 2)  # [bs, vocab, seq_len]
+        logits = model(x_in, x_len)[0].transpose(1, 2)  # [bs, vocab, seq_len]
         loss = criterion(logits, x_out)
         if args.accumulate_grad > 1:
             loss = loss / args.accumulate_grad
         train_loss += loss.item()
         loss.backward()
-        if _optimizer_step(args, i):
+        if optimizer_step(args, i):
             optimizer.step()
             optimizer.zero_grad()
             global_steps += 1
@@ -91,10 +87,10 @@ def test(test_ds_list):
     model.eval()
     test_loss = 0.
     test_loader = create_loader_multiple(args, test_ds_list)
-    for (x, _) in test_loader:
+    for (x, x_len_) in test_loader:
         with torch.no_grad():
             x_in, x_out = create_pretraining_inputs(x)
-            logits = model(x_in)[0].transpose(1, 2)  # [bs, vocab, seq_len]
+            logits = model(x_in, x_len)[0].transpose(1, 2)  # [bs, vocab, seq_len]
             loss = criterion(logits, x_out)
         test_loss += loss.item()
     return test_loss / len(test_loader)
@@ -107,7 +103,7 @@ elif args.model == 'roberta-base':
 else:
     raise NotImplementedError
 
-model = cuda(args, model)
+model = cuda(model)
 optimizer = AdamW(
     optimizer_params(model),
     lr=args.lr,

@@ -24,13 +24,17 @@ else:
 def prepare_text(text):
     tokens = tokenizer.tokenize(text)[:args.seq_len - 2]
     token_ids = tokenizer.encode(tokens, add_special_tokens=True)
-    rspace = args.seq_len - len(token_ids)  # <= args.seq_len
+    token_ids_len = len(token_ids)
+    rspace = args.seq_len - token_ids_len  # <= args.seq_len
     token_ids = rpad(token_ids, rspace, tokenizer.pad_token_id)
-    return cuda(args, torch.tensor(token_ids)).long()
+    return (
+        cuda(torch.tensor(token_ids)).long(),
+        cuda(torch.tensor(token_ids_len)).long(),
+    )
 
 
 def prepare_label(label):
-    return cuda(args, torch.tensor(label)).long()
+    return cuda(torch.tensor(label)).long()
 
 
 class TextDataset(Dataset):
@@ -53,9 +57,9 @@ class TextDataset(Dataset):
         res = self._cache.get(i, None)
         if res is None:
             text, label = self.unpack(i)
-            text_tensor = prepare_text(text)
+            text_tensor, len_tensor = prepare_text(text)
             label_tensor = prepare_label(label)
-            res = (text_tensor, label_tensor)
+            res = (text_tensor, len_tensor, label_tensor)
             self._cache[i] = res  # cache inputs
         return res
 

@@ -47,7 +47,7 @@ parser.add_argument(
     '--model',
     type=str,
     default='bert-base-uncased',
-    help='gpt2, bert-base-uncased, roberta-base, xlnet-base-uncased',
+    help='bert-base-uncased, roberta-base, xlnet-base-cased',
 )
 parser.add_argument(
     '--seq_len',

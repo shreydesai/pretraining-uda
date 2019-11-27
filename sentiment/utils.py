@@ -3,7 +3,7 @@ import numpy as np
 from main import args
 
 
-def cuda(args, tensor):
+def cuda(tensor):
     return tensor.to(args.device)
 
 
@@ -11,6 +11,10 @@ def rpad(tensor, rspace, c):
     return np.pad(
         tensor, (0, rspace), 'constant', constant_values=c
     ).tolist()
+
+
+def optimizer_step(args, i):
+    return i % args.accumulate_grad == 0
 
 
 def optimizer_params(model):

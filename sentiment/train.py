@@ -8,11 +8,7 @@ from sklearn.metrics import classification_report
 from main import args
 from data import TextDataset, create_loader
 from models import BertMLP, RobertaMLP, XLNetMLP
-from utils import cuda
-
-
-def _optimizer_step(args, i):
-    return i % args.accumulate_grad == 0
+from utils import cuda, optimizer_step, optimizer_params
 
 
 def train(train_ds):
@@ -21,13 +17,14 @@ def train(train_ds):
     global_steps = 0.
     train_loader = create_loader(args, train_ds)
     optimizer.zero_grad()
-    for i, (x, y) in enumerate(train_loader, 1):
-        loss = criterion(model(x), y)
+    for i, (x, x_len, y) in enumerate(train_loader, 1):
+        loss = criterion(model(x, x_len), y)
         if args.accumulate_grad > 1:
             loss = loss / args.accumulate_grad
         train_loss += loss.item()
+        print(loss)
         loss.backward()
-        if _optimizer_step(args, i):
+        if optimizer_step(args, i):
             optimizer.step()
             optimizer.zero_grad()
             global_steps += 1
@@ -38,9 +35,9 @@ def valid(valid_ds):
     model.eval()
     valid_loss = 0.
     valid_loader = create_loader(args, valid_ds)
-    for (x, y) in valid_loader:
+    for (x, x_len, y) in valid_loader:
         with torch.no_grad():
-            loss = criterion(model(x), y)
+            loss = criterion(model(x, x_len), y)
         valid_loss += loss.item()
     return valid_loss / len(valid_loader)
 
@@ -49,9 +46,9 @@ def test(test_ds):
     model.eval()
     test_loader = create_loader(args, test_ds, shuffle=False)
     y_true, y_pred = [], []
-    for (x, y) in test_loader:
+    for (x, x_len, y) in test_loader:
         with torch.no_grad():
-            preds = model(x).argmax(1)
+            preds = model(x, x_len).argmax(1)
         for i in range(x.size(0)):
             y_true.append(y[i].item())
             y_pred.append(preds[i].item())
@@ -68,7 +65,7 @@ else:
     raise NotImplementedError
 
 
-model = cuda(args, model)
+model = cuda(model)
 if args.pretrained_ckpt:
     pretrained_state_dict = torch.load(
         args.pretrained_ckpt, map_location='cpu'
@@ -77,13 +74,14 @@ if args.pretrained_ckpt:
         if n in pretrained_state_dict:
             w = pretrained_state_dict[n]
             p.data.copy_(w.data)
-    model = cuda(args, model)
+    model = cuda(model)
     print('loaded pretrained ckpt')
 
 optimizer = AdamW(
-    model.parameters(),
+    optimizer_params(model),
     lr=args.lr,
     weight_decay=args.wd,
+    eps=args.eps,
 )
 criterion = nn.CrossEntropyLoss()
 best_loss = float('inf')
