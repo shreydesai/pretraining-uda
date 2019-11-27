@@ -4,10 +4,10 @@ import collections
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from transformers import AdamW, BertForMaskedLM
+from transformers import AdamW, BertForMaskedLM, RobertaForMaskedLM
 
 from main import args
-from data import tokenizer, get_datasets, create_loader_multiple
+from data import TextDataset, tokenizer, create_loader_multiple
 from utils import cuda, optimizer_params
 
 
@@ -60,20 +60,9 @@ def _create_pretraining_inputs_bert(inputs):
     return (inputs, labels)
 
 
-def _create_pretraining_inputs_gpt2(inputs):
-    """
-    standard language modeling objective where the next word is predicted
-    from the context of all previous words
-    """
-
-    return (inputs[:-1], inputs[1:])
-
-
 def create_pretraining_inputs(inputs):
-    if args.model == 'bert-base-uncased':
+    if args.model == 'bert-base-uncased' or args.model == 'roberta-base':
         return _create_pretraining_inputs_bert(inputs)
-    elif args.model == 'gpt2':
-        return _create_pretraining_inputs_gpt2(inputs)
     raise NotImplementedError
 
 
@@ -113,8 +102,8 @@ def test(test_ds_list):
 
 if args.model == 'bert-base-uncased':
     model = BertForMaskedLM.from_pretrained('bert-base-uncased')
-elif args.model == 'gpt2':
-    model = GPT2LMHead.from_pretrained('gpt2')
+elif args.model == 'roberta-base':
+    model = RobertaForMaskedLM.from_pretrained('roberta-base')
 else:
     raise NotImplementedError
 
@@ -128,16 +117,31 @@ optimizer = AdamW(
 criterion = nn.CrossEntropyLoss(ignore_index=-1)
 best_loss = float('inf')
 
-src_train, src_valid, src_test = get_datasets(
-    args.src, args.search
-)
-trg_train, trg_valid, trg_test = get_datasets(
-    args.trg, args.search
-)
+train_ds_list = []
+valid_ds_list = []
+test_ds_list = []
 
-train_ds_list = [src_train, trg_train]
-valid_ds_list = [src_valid, trg_valid]
-test_ds_list = [src_test, trg_test]
+if args.src_p > 0:
+    train_ds_list.append(
+        TextDataset(f'amazon/{args.src}_train.csv', args.src_p)
+    )
+    valid_ds_list.append(
+        TextDataset(f'amazon/{args.src}_valid.csv', args.src_p)
+    )
+    test_ds_list.append(
+        TextDataset(f'amazon/{args.src}_test.csv', args.src_p)
+    )
+
+if args.trg_p > 0:
+    train_ds_list.append(
+        TextDataset(f'amazon/{args.trg}_train.csv', args.trg_p)
+    )
+    valid_ds_list.append(
+        TextDataset(f'amazon/{args.trg}_valid.csv', args.trg_p)
+    )
+    test_ds_list.append(
+        TextDataset(f'amazon/{args.trg}_test.csv', args.trg_p)
+    )
 
 if args.train:
     for epoch in range(1, args.epochs + 1):

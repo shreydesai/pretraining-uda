@@ -6,8 +6,8 @@ from transformers import AdamW
 from sklearn.metrics import classification_report
 
 from main import args
-from data import get_datasets, create_loader
-from models import BertMLP, RobertaMLP
+from data import TextDataset, create_loader
+from models import BertMLP, RobertaMLP, XLNetMLP
 from utils import cuda
 
 
@@ -62,6 +62,8 @@ if args.model == 'bert-base-uncased':
     model = BertMLP()
 elif args.model == 'roberta-base':
     model = RobertaMLP()
+elif args.model == 'xlnet-base-cased':
+    model = XLNetMLP()
 else:
     raise NotImplementedError
 
@@ -86,23 +88,9 @@ optimizer = AdamW(
 criterion = nn.CrossEntropyLoss()
 best_loss = float('inf')
 
-src_train, src_valid, src_test = get_datasets(
-    args.src, args.search
-)
-trg_train, trg_valid, trg_test = get_datasets(
-    args.trg, args.search
-)
-
-if args.mode == 0 or args.mode == 2:
-    train_ds = src_train
-    valid_ds = src_valid
-    test_ds = src_test
-elif args.mode == 1:
-    train_ds = trg_train
-    valid_ds = trg_valid
-    test_ds = trg_test
-else:
-    raise RuntimeError
+train_ds = TextDataset(f'amazon/{args.src}_train.csv', args.src_p)
+valid_ds = TextDataset(f'amazon/{args.src}_valid.csv', args.src_p)
+test_ds = TextDataset(f'amazon/{args.src}_test.csv', args.src_p)
 
 if args.train:
     for epoch in range(1, args.epochs + 1):

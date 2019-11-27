@@ -4,7 +4,7 @@ from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from transformers import (
     BertTokenizer,
     RobertaTokenizer,
-    GPT2Tokenizer,
+    XLNetTokenizer,
 )
 
 from main import args
@@ -15,8 +15,8 @@ if args.model == 'bert-base-uncased':
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 elif args.model == 'roberta-base':
     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-elif args.model == 'gpt2':
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+elif args.model == 'xlnet-base-cased':
+    tokenizer = XLNetTokenizer.from_pretrained('xlnet-base-cased')
 else:
     raise NotImplementedError
 
@@ -34,8 +34,11 @@ def prepare_label(label):
 
 
 class TextDataset(Dataset):
-    def __init__(self, path):
-        self.df = pd.read_csv(path)  # args.src or args.trg
+    def __init__(self, ds, p):
+        self.df = pd.read_csv(ds)
+        if p < 1.0:
+            self.df = self.df.sample(frac=p, random_state=0)
+            self.df = self.df.reset_index(drop=True)  # reset idx
         self.seq_len = args.seq_len
         self._cache = {}
 
@@ -55,13 +58,6 @@ class TextDataset(Dataset):
             res = (text_tensor, label_tensor)
             self._cache[i] = res  # cache inputs
         return res
-
-
-def get_datasets(ds, search=False):
-    train = TextDataset(f'amazon/{ds}_train.csv')
-    valid = TextDataset(f'amazon/{ds}_valid.csv')
-    test = valid if search else TextDataset(f'amazon/{ds}_test.csv')
-    return (train, valid, test)
 
 
 def create_loader(args, ds, shuffle=True):

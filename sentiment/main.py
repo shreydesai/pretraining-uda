@@ -32,6 +32,18 @@ parser.add_argument(
     help='target domain dataset',
 )
 parser.add_argument(
+    '--src_p',
+    type=float,
+    default=1.0,
+    help='p% of source domain',
+)
+parser.add_argument(
+    '--trg_p',
+    type=float,
+    default=1.0,
+    help='p% of source domain',
+)
+parser.add_argument(
     '--model',
     type=str,
     default='bert-base-uncased',
